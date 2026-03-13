@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ideas principales — Actividad interactiva</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f4f0;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px 48px;
+  }
+  .container { width: 100%; max-width: 640px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .start-card {
+    background: #fff; border-radius: 16px;
+    border: 1px solid #e0ddd6;
+    padding: 48px 32px; text-align: center; margin-top: 40px;
+  }
+  .start-card h1 { font-size: 26px; font-weight: 600; color: #1a1a18; margin-bottom: 10px; }
+  .start-card p { font-size: 15px; color: #6b6a64; line-height: 1.7; max-width: 360px; margin: 0 auto 24px; }
+  .pills { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+
+  .name-label { font-size: 14px; color: #4a4a46; margin-bottom: 8px; text-align: left; display: block; }
+  .name-input {
+    width: 100%; padding: 12px 14px;
+    border: 1px solid #d3d1c7; border-radius: 10px;
+    font-size: 15px; color: #1a1a18;
+    font-family: inherit; margin-bottom: 20px;
+    outline: none; transition: border-color .15s;
+    background: #fafaf7;
+  }
+  .name-input:focus { border-color: #185FA5; }
+
+  .game-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .q-counter { font-size: 13px; color: #6b6a64; white-space: nowrap; }
+  .progress-bar { flex: 1; min-width: 100px; height: 6px; background: #e0ddd6; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #185FA5; border-radius: 3px; transition: width .4s ease; }
+  .score-top { font-size: 13px; color: #6b6a64; white-space: nowrap; }
+  .student-name-top { font-size: 13px; color: #6b6a64; white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+
+  .qcard {
+    background: #fff; border-radius: 16px;
+    border: 1px solid #e0ddd6; padding: 24px;
+  }
+  .q-level-row { margin-bottom: 8px; }
+  .q-title { font-size: 17px; font-weight: 600; color: #1a1a18; margin-bottom: 14px; }
+  .q-para {
+    font-size: 14px; line-height: 1.85; color: #4a4a46;
+    border-left: 3px solid #d3d1c7; padding-left: 14px;
+    margin-bottom: 22px;
+  }
+  .q-prompt { font-size: 13px; color: #6b6a64; margin-bottom: 12px; font-style: italic; }
+
+  .option {
+    width: 100%; text-align: left;
+    background: #f8f7f3; border: 1px solid #e0ddd6;
+    border-radius: 10px; padding: 13px 16px;
+    font-size: 14px; color: #1a1a18; line-height: 1.55;
+    cursor: pointer; margin-bottom: 8px;
+    transition: border-color .15s, background .15s;
+    font-family: inherit;
+  }
+  .option:hover:not(:disabled) { background: #efeee8; border-color: #b4b2a9; }
+  .option.correct { background: #e1f5ee; border-color: #0f6e56; color: #04342c; }
+  .option.wrong { background: #fcebeb; border-color: #a32d2d; color: #501313; }
+  .option.reveal-correct { background: #e1f5ee; border-color: #0f6e56; color: #04342c; }
+  .option:disabled { cursor: default; }
+
+  .feedback {
+    font-size: 13px; line-height: 1.65;
+    padding: 12px 16px; border-radius: 10px;
+    margin-top: 6px; margin-bottom: 12px; display: none;
+  }
+  .feedback.ok { background: #e1f5ee; color: #04342c; border: 1px solid #0f6e56; }
+  .feedback.fail { background: #fcebeb; color: #501313; border: 1px solid #a32d2d; }
+
+  .btn-next {
+    display: none; width: 100%; padding: 12px; margin-top: 6px;
+    background: #f8f7f3; border: 1px solid #b4b2a9;
+    border-radius: 10px; font-size: 14px; font-weight: 500;
+    color: #1a1a18; cursor: pointer; font-family: inherit;
+    transition: background .15s;
+  }
+  .btn-next:hover { background: #efeee8; }
+
+  .result-card {
+    background: #fff; border-radius: 16px;
+    border: 1px solid #e0ddd6;
+    padding: 40px 28px; text-align: center; margin-top: 16px;
+  }
+  .big-score { font-size: 52px; font-weight: 600; color: #1a1a18; }
+  .score-sub { font-size: 15px; color: #6b6a64; margin-top: 8px; margin-bottom: 28px; line-height: 1.6; }
+  .breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+  .bk-cell { background: #f8f7f3; border-radius: 10px; padding: 14px 8px; font-size: 13px; color: #6b6a64; }
+  .bk-num { font-size: 22px; font-weight: 600; color: #1a1a18; display: block; margin-bottom: 4px; }
+
+  .sending-msg {
+    font-size: 13px; color: #6b6a64;
+    margin-bottom: 20px; min-height: 20px;
+  }
+  .sending-msg.ok { color: #0f6e56; }
+  .sending-msg.fail { color: #a32d2d; }
+
+  .pill {
+    font-size: 11px; font-weight: 600;
+    padding: 3px 11px; border-radius: 20px;
+    letter-spacing: .04em; display: inline-block;
+  }
+  .pill-easy { background: #e1f5ee; color: #085041; }
+  .pill-med  { background: #faeeda; color: #633806; }
+  .pill-hard { background: #fcebeb; color: #791f1f; }
+
+  .btn-primary {
+    display: inline-block; padding: 13px 36px;
+    background: #185FA5; color: #fff;
+    border: none; border-radius: 10px;
+    font-size: 15px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+    transition: background .15s; width: 100%;
+  }
+  .btn-primary:hover { background: #0c447c; }
+  .btn-primary:disabled { background: #b4b2a9; cursor: default; }
+  .btn-secondary {
+    display: inline-block; padding: 12px 28px;
+    background: #f8f7f3; color: #1a1a18;
+    border: 1px solid #b4b2a9; border-radius: 10px;
+    font-size: 14px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+    transition: background .15s;
+  }
+  .btn-secondary:hover { background: #efeee8; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- INICIO -->
+  <div id="start" class="screen active">
+    <div class="start-card">
+      <h1>Ideas principales</h1>
+      <p>Lee cada párrafo y elige cuál opción es la idea principal. Tienes 8 preguntas de menor a mayor dificultad.</p>
+      <div class="pills">
+        <span class="pill pill-easy">3 fáciles</span>
+        <span class="pill pill-med">3 medias</span>
+        <span class="pill pill-hard">2 difíciles</span>
+      </div>
+      <label class="name-label" for="nombre-input">¿Cómo te llamas?</label>
+      <input class="name-input" id="nombre-input" type="text" placeholder="Escribe tu nombre aquí" maxlength="60" />
+      <button class="btn-primary" id="btn-start" onclick="startGame()">Comenzar</button>
+    </div>
+  </div>
+
+  <!-- JUEGO -->
+  <div id="game" class="screen">
+    <div class="game-header">
+      <span class="student-name-top" id="name-top"></span>
+      <div class="progress-bar"><div class="progress-fill" id="pbar" style="width:0%"></div></div>
+      <span class="score-top" id="scoretop">0 pts</span>
+    </div>
+    <div class="qcard">
+      <div class="q-level-row" id="qlevel"></div>
+      <div class="q-title" id="qtitle"></div>
+      <div class="q-para" id="qpara"></div>
+      <div class="q-prompt">¿Cuál es la idea principal del párrafo?</div>
+      <div id="options"></div>
+      <div class="feedback" id="feedback"></div>
+      <button class="btn-next" id="btnnext" onclick="nextQ()">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- RESULTADO -->
+  <div id="result" class="screen">
+    <div class="result-card">
+      <div class="big-score" id="final-score"></div>
+      <div class="score-sub" id="final-msg"></div>
+      <div class="breakdown">
+        <div class="bk-cell"><span class="bk-num" id="bk-easy"></span>Fáciles</div>
+        <div class="bk-cell"><span class="bk-num" id="bk-med"></span>Medias</div>
+        <div class="bk-cell"><span class="bk-num" id="bk-hard"></span>Difíciles</div>
+      </div>
+      <div class="sending-msg" id="sending-msg">Enviando resultados...</div>
+      <button class="btn-secondary" onclick="startGame()">Jugar de nuevo</button>
+    </div>
+  </div>
+
+</div>
+<script>
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbzy9aOH7Ag4guXzDzXc5dDKp6ja5XJYqqn772PQG97Iop9mvsNyzso1UfXJoLlHXEqaow/exec";
+
+const QS = [
+  {
+    level:"Fácil", pill:"pill-easy", title:"El agua",
+    para:"Tomar suficiente agua es fundamental para la salud. Ayuda a los riñones a eliminar toxinas, mantiene la piel hidratada y regula la temperatura del cuerpo. Se recomienda beber al menos ocho vasos al día.",
+    options:[
+      "Tomar suficiente agua es fundamental para la salud.",
+      "Se recomienda beber al menos ocho vasos al día.",
+      "El agua ayuda a los riñones a eliminar toxinas."
+    ],
+    correct:0,
+    fb_ok:"¡Correcto! Es la primera oración y resume de qué trata el párrafo. Las otras opciones son detalles que la apoyan.",
+    fb_fail:"La respuesta correcta es la primera. Las demás son ideas secundarias: datos específicos que explican por qué tomar agua es importante."
+  },
+  {
+    level:"Fácil", pill:"pill-easy", title:"La música",
+    para:"Escuchar música tiene efectos positivos en el estado de ánimo. Reduce el estrés y la ansiedad, mejora la concentración y puede aliviar el dolor. Por eso se usa incluso en tratamientos médicos.",
+    options:[
+      "La música se usa en tratamientos médicos.",
+      "Escuchar música tiene efectos positivos en el estado de ánimo.",
+      "La música reduce el estrés y la ansiedad."
+    ],
+    correct:1,
+    fb_ok:"¡Correcto! La primera oración del párrafo es la idea que todo lo demás viene a explicar. El uso médico y la reducción del estrés son consecuencias secundarias.",
+    fb_fail:"La idea principal es la segunda opción. El uso médico es solo un ejemplo, y reducir el estrés es uno de varios efectos. La idea central habla de los efectos positivos en general."
+  },
+  {
+    level:"Fácil", pill:"pill-easy", title:"El reciclaje",
+    para:"El reciclaje ayuda a reducir la contaminación del medio ambiente. Al reutilizar materiales como el papel, el vidrio y el plástico, se produce menos basura. También se gasta menos energía en fabricar productos nuevos.",
+    options:[
+      "Al reutilizar papel, vidrio y plástico se produce menos basura.",
+      "Fabricar productos nuevos gasta mucha energía.",
+      "El reciclaje ayuda a reducir la contaminación del medio ambiente."
+    ],
+    correct:2,
+    fb_ok:"¡Correcto! Es la oración que da sentido a todo el párrafo. Las demás explican cómo o por qué el reciclaje logra ese efecto.",
+    fb_fail:"La idea principal es la tercera opción. Las otras dos son razones que apoyan esa idea central, no el mensaje principal del párrafo."
+  },
+  {
+    level:"Media", pill:"pill-med", title:"El sueño",
+    para:"Dormir bien no es simplemente una cuestión de descanso físico. Durante el sueño, el cerebro consolida los recuerdos del día, elimina toxinas acumuladas y regula las hormonas que controlan el apetito y el estado de ánimo. Las personas que duermen menos de seis horas de manera habitual presentan mayor riesgo de desarrollar enfermedades cardiovasculares y problemas de memoria.",
+    options:[
+      "Dormir menos de seis horas aumenta el riesgo de enfermedades cardiovasculares.",
+      "Dormir bien es esencial para el funcionamiento del cerebro y la salud general, no solo para el descanso físico.",
+      "El sueño sirve principalmente para que el cuerpo recupere energía."
+    ],
+    correct:1,
+    fb_ok:"¡Correcto! El párrafo abre diciendo que el sueño es más que descanso físico, y todo lo demás demuestra eso. La idea principal requiere reformular la primera oración en positivo.",
+    fb_fail:"La respuesta correcta es la segunda. La primera opción es solo uno de los riesgos mencionados, no la idea central. La tercera es exactamente lo que el párrafo niega desde el inicio."
+  },
+  {
+    level:"Media", pill:"pill-med", title:"La contaminación del suelo",
+    para:"El uso excesivo de pesticidas y fertilizantes químicos en la agricultura ha deteriorado gravemente la calidad del suelo en muchas regiones. Estos compuestos alteran la composición química de la tierra, reducen la diversidad de microorganismos beneficiosos y pueden filtrarse hacia las napas de agua subterránea. Como consecuencia, los cultivos producen alimentos con menor valor nutritivo y las comunidades cercanas enfrentan problemas de acceso a agua potable.",
+    options:[
+      "Los pesticidas se filtran hacia las napas de agua subterránea y contaminan el agua potable.",
+      "La falta de microorganismos en el suelo reduce el valor nutritivo de los alimentos.",
+      "El uso excesivo de químicos agrícolas deteriora el suelo y genera consecuencias en cadena para los alimentos y el agua."
+    ],
+    correct:2,
+    fb_ok:"¡Correcto! Las otras opciones mencionan consecuencias específicas, pero la idea principal abarca todo el proceso: los químicos dañan el suelo y eso provoca múltiples problemas.",
+    fb_fail:"La idea principal es la tercera. Las primeras dos opciones son consecuencias que aparecen hacia el final del párrafo, pero no explican la causa ni el alcance general del problema."
+  },
+  {
+    level:"Media", pill:"pill-med", title:"La empatía",
+    para:"La empatía es una habilidad que permite comprender y compartir los sentimientos de otras personas. No se trata solo de reconocer que alguien está triste o contento, sino de conectar genuinamente con su experiencia. Esta capacidad es fundamental en las relaciones interpersonales, favorece la resolución pacífica de conflictos y es considerada una competencia clave en profesiones como la medicina, la educación y el trabajo social.",
+    options:[
+      "La empatía es importante en profesiones como la medicina y el trabajo social.",
+      "La empatía es la capacidad de conectar genuinamente con la experiencia del otro y resulta fundamental en la vida social y profesional.",
+      "La empatía consiste en reconocer si alguien está triste o contento."
+    ],
+    correct:1,
+    fb_ok:"¡Correcto! El párrafo no solo define la empatía, sino que explica su alcance y su importancia. La idea principal debe capturar ambas cosas.",
+    fb_fail:"La respuesta correcta es la segunda. La primera solo menciona un campo profesional, y la tercera describe justamente lo que el párrafo dice que la empatía NO es."
+  },
+  {
+    level:"Difícil", pill:"pill-hard", title:"El populismo",
+    para:"El populismo no puede reducirse a una ideología política con contenidos fijos, sino que funciona más bien como una lógica discursiva que puede articularse tanto desde la derecha como desde la izquierda. Su rasgo central es la construcción de una dicotomía entre 'el pueblo' —presentado como virtuoso y homogéneo— y una élite corrupta que lo traiciona. Esta operación retórica tiene la capacidad de movilizar a sectores históricamente excluidos de la política formal, aunque también puede derivar en el debilitamiento de las instituciones democráticas cuando el líder populista concentra el poder apelando a una supuesta voluntad popular incuestionable.",
+    options:[
+      "El populismo es una ideología de derecha o de izquierda que enfrenta al pueblo contra las élites.",
+      "El populismo es una lógica discursiva que puede movilizar a sectores excluidos, pero también amenazar las instituciones democráticas.",
+      "Los líderes populistas debilitan la democracia al concentrar el poder en sus manos."
+    ],
+    correct:1,
+    fb_ok:"¡Correcto! Es la única opción que integra las dos dimensiones del párrafo: el potencial movilizador y el riesgo democrático, sin reducir el populismo a una ideología fija.",
+    fb_fail:"La respuesta correcta es la segunda. La primera comete el error que el propio párrafo critica: llamar al populismo una ideología. La tercera solo recoge el aspecto negativo y omite la primera parte del argumento."
+  },
+  {
+    level:"Difícil", pill:"pill-hard", title:"El tiempo libre y el trabajo",
+    para:"La distinción moderna entre tiempo de trabajo y tiempo libre no responde a una diferencia natural o universal, sino a una construcción histórica surgida con el capitalismo industrial. Antes de la industrialización, las actividades productivas se integraban con el descanso, la festividad y la vida comunitaria sin fronteras rígidas. La fábrica introdujo la separación tajante entre el tiempo vendido al empleador y el tiempo propio del trabajador, transformando el descanso en un recurso necesario para restaurar la fuerza de trabajo, es decir, subordinándolo también a la lógica productiva.",
+    options:[
+      "Antes de la industrialización, el trabajo y el descanso convivían sin separación rígida.",
+      "La separación entre trabajo y tiempo libre es una construcción histórica del capitalismo, no una división natural.",
+      "El tiempo libre existe para que los trabajadores recuperen energía y puedan seguir produciendo."
+    ],
+    correct:1,
+    fb_ok:"¡Correcto! Es la idea que articula todo el párrafo. El contraste con el período preindustrial y la conclusión sobre el descanso son ideas secundarias que apoyan esta tesis central.",
+    fb_fail:"La idea principal es la segunda. La primera describe solo el pasado, que es un argumento de apoyo. La tercera recoge la conclusión final del párrafo, pero no explica el argumento central sobre el origen histórico de esa separación."
+  }
+];
+
+let cur=0, score=0, answered=false, nombre="";
+let bk={easy:0,med:0,hard:0};
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startGame(){
+  const input = document.getElementById('nombre-input');
+  nombre = input ? input.value.trim() : nombre;
+  if(!nombre){ 
+    document.getElementById('nombre-input').style.borderColor='#a32d2d';
+    document.getElementById('nombre-input').placeholder='Por favor escribe tu nombre';
+    return; 
+  }
+  cur=0; score=0; answered=false;
+  bk={easy:0,med:0,hard:0};
+  show('game');
+  document.getElementById('name-top').textContent=nombre;
+  renderQ();
+}
+
+function renderQ(){
+  const q=QS[cur];
+  document.getElementById('qcounter') && (document.getElementById('qcounter').textContent=(cur+1)+' / '+QS.length);
+  document.getElementById('pbar').style.width=(cur/QS.length*100)+'%';
+  document.getElementById('scoretop').textContent=score+' pts';
+  document.getElementById('qlevel').innerHTML='<span class="pill '+q.pill+'">'+q.level+'</span>';
+  document.getElementById('qtitle').textContent=q.title;
+  document.getElementById('qpara').textContent=q.para;
+  const op=document.getElementById('options');
+  op.innerHTML='';
+  q.options.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='option'; b.textContent=o;
+    b.onclick=()=>pick(i);
+    op.appendChild(b);
+  });
+  document.getElementById('feedback').style.display='none';
+  document.getElementById('feedback').className='feedback';
+  document.getElementById('btnnext').style.display='none';
+  answered=false;
+}
+
+function pick(i){
+  if(answered) return;
+  answered=true;
+  const q=QS[cur];
+  const btns=document.querySelectorAll('.option');
+  btns.forEach(b=>b.disabled=true);
+  const pts=q.level==='Fácil'?1:q.level==='Media'?2:3;
+  const ok=i===q.correct;
+  if(ok){
+    btns[i].classList.add('correct');
+    score+=pts;
+    if(q.level==='Fácil') bk.easy++;
+    else if(q.level==='Media') bk.med++;
+    else bk.hard++;
+  } else {
+    btns[i].classList.add('wrong');
+    btns[q.correct].classList.add('reveal-correct');
+  }
+  const fb=document.getElementById('feedback');
+  fb.style.display='block';
+  fb.className='feedback '+(ok?'ok':'fail');
+  fb.textContent=ok?q.fb_ok:q.fb_fail;
+  document.getElementById('btnnext').style.display='block';
+}
+
+function nextQ(){
+  cur++;
+  if(cur>=QS.length){ showResult(); return; }
+  renderQ();
+}
+
+function showResult(){
+  document.getElementById('pbar').style.width='100%';
+  const max=15;
+  document.getElementById('final-score').textContent=score+' / '+max;
+  let msg='';
+  const pct=score/max;
+  if(pct===1) msg='¡Puntaje perfecto! Dominaste todos los niveles.';
+  else if(pct>=0.75) msg='Muy bien. Identificas ideas principales con solidez.';
+  else if(pct>=0.5) msg='Buen trabajo. Los niveles difíciles son el siguiente paso.';
+  else msg='Buen intento. Repasa los párrafos y vuelve a intentarlo.';
+  document.getElementById('final-msg').textContent=msg;
+  document.getElementById('bk-easy').textContent=bk.easy+'/3';
+  document.getElementById('bk-med').textContent=bk.med+'/3';
+  document.getElementById('bk-hard').textContent=bk.hard+'/2';
+  show('result');
+  sendResults();
+}
+
+function sendResults(){
+  const msg = document.getElementById('sending-msg');
+  msg.textContent = 'Enviando resultados...';
+  msg.className = 'sending-msg';
+
+  const payload = {
+    nombre: nombre,
+    puntaje: score + ' / 15',
+    faciles: bk.easy + ' / 3',
+    medias: bk.med + ' / 3',
+    dificiles: bk.hard + ' / 2'
+  };
+
+  fetch(SHEET_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(()=>{
+    msg.textContent = 'Resultados guardados correctamente.';
+    msg.className = 'sending-msg ok';
+  })
+  .catch(()=>{
+    msg.textContent = 'No se pudieron enviar los resultados. Revisa tu conexión.';
+    msg.className = 'sending-msg fail';
+  });
+}
+</script>
+</body>
+</html>
